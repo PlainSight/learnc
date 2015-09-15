@@ -95,7 +95,7 @@ void removeFromTree(octtree* tree, supercolor* color) {
 		}
 	}
 
-	for(quadtree* t = tree; t != NULL; t = t->parent) {
+	for(octtree* t = tree; t != NULL; t = t->parent) {
 		t->size--;
 
 		if(t->size < ARRAYSIZE/2 && t->hasChildren) {
@@ -130,6 +130,52 @@ void putColorInTree(octtree* tree, supercolor* color) {
 			splitOctTree(tree);
 			putColorInChildTree(tree, color);
 		}
+	}
+}
+
+int shouldVisitTree(octtree* tree, supercolor* nom, supercolor* nearest) {
+	int aa = nom->r - (tree->minx + tree->maxx) / 2;
+	int bb = nom->g - (tree->miny + tree->maxy) / 2;
+	int cc = nom->b - (tree->minz + tree->maxz) / 2;
+
+	float dd = 0.71f * (tree->maxx - tree->minx);
+
+	float distancesqr = (aa*aa + bb*bb + cc*cc) - dd*dd;
+
+	return getColorDistance(nom, nearest) > distancesqr;
+}
+
+supercolor* findNearestColorInTree(octtree* tree, supercolor* nom, supercolor* nearest) {
+	if(tree->size == 0 || (nearest == NULL && !shouldVisitTree(tree, nom, nearest))) {
+		return nearest;
+	}
+
+	if(!tree->hasChildren) {
+		for(int i = 0; i < tree->size; i++) {
+			if(nearest == NULL) {
+				nearest = tree->colors[i];
+			} else {
+				if(getColorDistance(nom, tree->colors[i]) < getColorDistance(nom, nearest)) {
+					nearest = tree->colors[i];
+				}
+			}
+		}
+		return nearest;
+	} else {
+		for(int i = 0; i < 8; i++) {
+			supercolor* temp = findNearestColorInTree(tree->children[i], nom, nearest);
+
+			if(temp == NULL) continue;
+			
+			if(nearest == NULL) {
+				nearest = temp;
+			} else {
+				if(getColorDistance(nom, temp) < getColorDistance(nom, nearest)) {
+					nearest = temp;
+				}
+			}
+		}
+		return nearest;
 	}
 }
 
