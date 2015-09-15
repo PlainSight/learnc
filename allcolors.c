@@ -216,7 +216,6 @@ void splitOctTree(octtree* tree) {
 
 	for (int i = 0; i < ARRAYSIZE; i++) {
 		putColorInChildTree(tree, tree->colors[i]);
-
 	}
 }
 
@@ -232,14 +231,17 @@ void outImage(const char* filename, const unsigned char* image, unsigned width, 
 int main(int argc, char *argv[]) {
 
 	octtree* root = createOctTree(0, 0, 0, 255, 255, 255, NULL);
-	splitOctTree(root);
 
 	printf("Hello World\n");
 
 	unsigned int width = 512;
 	unsigned int height = 512;
 
+	printf("alloc mem\n");
+
 	unsigned char* image = (unsigned char*) malloc(width * height * 4);
+
+	printf("alloc mem succ\n");
 
 	outImage("picture.png", image, width, height);
 
