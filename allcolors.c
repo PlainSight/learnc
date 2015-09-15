@@ -87,6 +87,8 @@ void putColorInChildTree(octtree* tree, supercolor* color) {
 
 void removeFromTree(octtree* tree, supercolor* color) {
 
+	//printf("b\n");
+
 	for(int i = 0; i < ARRAYSIZE; i++) {
 		if(tree->colors[i] == color) {
 			tree->colors[i] = tree->colors[tree->size - 1];
@@ -120,13 +122,26 @@ void removeFromTree(octtree* tree, supercolor* color) {
 
 void putColorInTree(octtree* tree, supercolor* color) {
 
+	//printf("c\n");
+
 	if(tree->hasChildren) {
+
+		//printf("cc\n");
+
 		putColorInChildTree(tree, color);
+
+		//printf("ccc\n");
 	} else {
 		if(tree->size < ARRAYSIZE) {
+
+			//printf("cccc\n");
+
 			tree->colors[tree->size] = color;
 			color->location = tree;
 		} else {
+
+			//printf("ccccc\n");
+
 			splitOctTree(tree);
 			putColorInChildTree(tree, color);
 		}
@@ -136,6 +151,8 @@ void putColorInTree(octtree* tree, supercolor* color) {
 }
 
 int shouldVisitTree(octtree* tree, supercolor* nom, supercolor* nearest) {
+
+	//printf("d\n");
 
 	int aa = nom->r - (tree->minx + tree->maxx) / 2;
 	int bb = nom->g - (tree->miny + tree->maxy) / 2;
@@ -149,6 +166,8 @@ int shouldVisitTree(octtree* tree, supercolor* nom, supercolor* nearest) {
 }
 
 supercolor* findNearestColorInTree(octtree* tree, supercolor* nom, supercolor* nearest) {
+
+	//printf("e\n");
 
 	if(tree->size == 0 || (nearest != NULL && !shouldVisitTree(tree, nom, nearest))) {
 		return nearest;
@@ -184,6 +203,8 @@ supercolor* findNearestColorInTree(octtree* tree, supercolor* nom, supercolor* n
 }
 
 void splitOctTree(octtree* tree) {
+
+	//printf("f\n");
 
 	int midx = ( tree->minx + tree->maxx ) / 2;
 	int midy = ( tree->miny + tree->maxy ) / 2;
@@ -235,6 +256,8 @@ void outImage(const char* filename, const unsigned char* image, unsigned width, 
 
 void setPixel(unsigned char* image, int width, int height, supercolor* color, octtree* tree, int* pseudoRandom) {
 	int set = 0;
+
+	//printf("%d %d %d\n", color->r, color->g, color->b);
 
 	int openSpaces[8][2];
 
@@ -297,6 +320,9 @@ void placeFirstPixel(unsigned char* image, int width, int height, octtree* tree,
 	image[place+2] = (char) color->g;
 	image[place+3] = (char) color->b;
 
+	color->x = width / 2;
+	color->y = height / 2;
+
 	putColorInTree(tree, color);
 
 	printf("placed first pixel\n");
@@ -304,15 +330,16 @@ void placeFirstPixel(unsigned char* image, int width, int height, octtree* tree,
 
 int main(int argc, char *argv[]) {
 
-	octtree* root = createOctTree(0, 0, 0, 255, 255, 255, NULL);
+	octtree* root = createOctTree(0, 0, 0, 256, 256, 256, NULL);
 
 	supercolor* colors = (supercolor *) malloc(16777216 * sizeof(supercolor));
 
+	int j = 0;
 	for(int i = 0; i < 16777216; i++) {
 		int r = (i & 0x00FF0000) >> 16;
 		int g = (i & 0x0000FF00) >> 8;
 		int b = i & 0x000000FF;
-		colors[i] = createSuperColor(r, g, b);
+		colors[j++] = createSuperColor(r, g, b);
 	}
 
 	unsigned int width = 512;
@@ -329,10 +356,6 @@ int main(int argc, char *argv[]) {
 
 	for(int i = 1; i < todo; i++) {
 		setPixel(image, width, height, &colors[i], root, &pseudoRandom);
-
-		if(i % 10000 == 0) {
-			printf("\r%d", i);
-		}
 	}
 
 	printf("set pixels\n");
