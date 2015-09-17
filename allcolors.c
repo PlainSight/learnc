@@ -8,9 +8,9 @@
 struct SuperColor {
 	int x;
 	int y;
-	int r;
-	int g;
-	int b;
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
 	octtree* location;
 };
 
@@ -21,22 +21,20 @@ struct OctTree {
 	int maxx;
 	int maxy;
 	int maxz;
-
+	
 	supercolor* colors[ARRAYSIZE];
-	int size;
-
-	octtree* parent;
 	octtree* children[8];
-
-	int hasChildren;
+	octtree* parent;
+	short size;
+	short hasChildren;
 };
 
 supercolor createSuperColor(int r, int g, int b) {
 
 	supercolor color;
-	color.r = r;
-	color.g = g;
-	color.b = b;
+	color.r = (unsigned char) r;
+	color.g = (unsigned char) g;
+	color.b = (unsigned char) b;
 
 	return color;
 }
@@ -69,9 +67,9 @@ int hasPointInside(octtree* tree, supercolor* color) {
 
 int getColorDistance(supercolor* color, supercolor* other) {
 
-	int rd = color->r - other->r;
-	int gd = color->g - other->g;
-	int bd = color->b - other->b;
+	int rd = (int) color->r - (int) other->r;
+	int gd = (int) color->g - (int) other->g;
+	int bd = (int) color->b - (int) other->b;
 
 	return rd*rd + gd*gd + bd*bd;
 }
@@ -154,9 +152,9 @@ int shouldVisitTree(octtree* tree, supercolor* nom, supercolor* nearest) {
 
 	//printf("d\n");
 
-	int aa = nom->r - (tree->minx + tree->maxx) / 2;
-	int bb = nom->g - (tree->miny + tree->maxy) / 2;
-	int cc = nom->b - (tree->minz + tree->maxz) / 2;
+	int aa = ((int) nom->r) - (tree->minx + tree->maxx) / 2;
+	int bb = ((int) nom->g) - (tree->miny + tree->maxy) / 2;
+	int cc = ((int) nom->b) - (tree->minz + tree->maxz) / 2;
 
 	float dd = 0.71f * (tree->maxx - tree->minx);
 
@@ -282,7 +280,7 @@ void setPixel(unsigned char* image, int width, int height, supercolor* color, oc
 
 				int place = 4 * ((y * height) + x);
 
-				if(image[place+1] + image[place+2] + image[place+3] == 0) {
+				if(image[place] + image[place+1] + image[place+2] == 0) {
 					openSpaces[numopen][0] = x;
 					openSpaces[numopen][1] = y;
 					numopen++;
@@ -294,14 +292,16 @@ void setPixel(unsigned char* image, int width, int height, supercolor* color, oc
 		if(!set) {
 			removeFromTree(closestNeighbour->location, closestNeighbour);			
 		} else {
-			int placement = *pseudoRandom++ % numopen;
+			int placement = (*pseudoRandom) % numopen;
 			
+			(*pseudoRandom)++;
+
 			int place = 4 * ((openSpaces[placement][1] * height) + openSpaces[placement][0]);
 
-			image[place] = 0;
-			image[place+1] = (char) color->r;
-			image[place+2] = (char) color->g;
-			image[place+3] = (char) color->b;
+			image[place] = color->r;
+			image[place+1] = color->g;
+			image[place+2] = color->b;
+			image[place+3] = 255;
 
 			color->x = openSpaces[placement][0];
 			color->y = openSpaces[placement][1];
@@ -315,10 +315,10 @@ void setPixel(unsigned char* image, int width, int height, supercolor* color, oc
 void placeFirstPixel(unsigned char* image, int width, int height, octtree* tree, supercolor* color) {
 	int place = 4 * ((height * height / 2) + width / 2);
 
-	image[place] = 0;
-	image[place+1] = (char) color->r;
-	image[place+2] = (char) color->g;
-	image[place+3] = (char) color->b;
+	image[place] = color->r;
+	image[place+1] = color->g;
+	image[place+2] = color->b;
+	image[place+3] = 255;
 
 	color->x = width / 2;
 	color->y = height / 2;
@@ -342,8 +342,8 @@ int main(int argc, char *argv[]) {
 		colors[j++] = createSuperColor(r, g, b);
 	}
 
-	unsigned int width = 512;
-	unsigned int height = 512;
+	unsigned int width = 4096;
+	unsigned int height = 4096;
 	unsigned char* image = (unsigned char*) malloc(width * height * 4);
 
 	int pseudoRandom = 0;
@@ -355,6 +355,13 @@ int main(int argc, char *argv[]) {
 	int todo = width * height;
 
 	for(int i = 1; i < todo; i++) {
+
+		int random = i + (rand() % (16777216 - i));
+
+		supercolor temp = colors[i];
+		colors[i] = colors[random];
+		colors[random] = temp;
+
 		setPixel(image, width, height, &colors[i], root, &pseudoRandom);
 	}
 
