@@ -3,7 +3,7 @@
 #include "allcolors.h"
 #include "lodepng.h"
 
-#define ARRAYSIZE 16
+#define ARRAYSIZE 64
 
 struct SuperColor {
 	int x;
@@ -342,8 +342,8 @@ int main(int argc, char *argv[]) {
 		colors[j++] = createSuperColor(r, g, b);
 	}
 
-	unsigned int width = 4096;
-	unsigned int height = 4096;
+	unsigned int width = 1024;
+	unsigned int height = 1024;
 	unsigned char* image = (unsigned char*) malloc(width * height * 4);
 
 	int pseudoRandom = 0;
