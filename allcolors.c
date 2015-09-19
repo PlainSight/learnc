@@ -350,7 +350,9 @@ int main() {
 		colors[j++] = createSuperColor(r, g, b);
 	}
 
-	clock_t start = clock();
+	time_t start = time(0);
+
+	srand(start);
 
 	int width = 4096;
 	int height = 4096;
@@ -366,7 +368,7 @@ int main() {
 
 	for(int i = 1; i < todo; i++) {
 
-		int r = ((rand() << 16) & 0x00FF0000) + (rand() & 0x0000FFFF);
+		int r = ((rand() & 0xFF) << 16) | (rand() & 0x0000FFFF);
 
 		int random = i + (r % (16777216 - i));
 
@@ -377,19 +379,20 @@ int main() {
 		setPixel(image, width, height, &colors[i], root, &pseudoRandom);
 
 		if (i % 100000 == 0) {
-			clock_t diff = clock() - start;
+			time_t diff = time(0) - start;
 
-			int ms = diff * 1000 / CLOCKS_PER_SEC;
+			int s = diff;
 
-			printf("\r%d complete, time taken %d s %d ms", (int)((i * 100) / (float)todo), ms / 1000, ms % 1000);
+			printf("\r%d%% complete, time taken %ds", (int)((i * 100) / (float)todo), s);
 		}
 	}
 
-	clock_t diff = clock() - start;
-	int s = diff / CLOCKS_PER_SEC;
+	time_t diff = time(0) - start;
+
+	time_t now = time(0);
 	char filename[50];
 
-	sprintf_s(filename, "picture %d seconds.png", s);
+	sprintf(filename, "picture %lli - %llis.png", now, diff);
 
 	outImage(filename, image, width, height);
 }
