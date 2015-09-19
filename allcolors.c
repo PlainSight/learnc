@@ -366,7 +366,7 @@ int main() {
 
 	for(int i = 1; i < todo; i++) {
 
-		int r = ((rand() << 16) + rand());
+		int r = ((rand() << 16) & 0x00FF0000) + (rand() & 0x0000FFFF);
 
 		int random = i + (r % (16777216 - i));
 
@@ -376,7 +376,7 @@ int main() {
 
 		setPixel(image, width, height, &colors[i], root, &pseudoRandom);
 
-		if (i % 10000 == 0) {
+		if (i % 100000 == 0) {
 			clock_t diff = clock() - start;
 
 			int ms = diff * 1000 / CLOCKS_PER_SEC;
@@ -385,7 +385,11 @@ int main() {
 		}
 	}
 
-	printf("set pixels\n");
+	clock_t diff = clock() - start;
+	int s = diff / CLOCKS_PER_SEC;
+	char filename[50];
 
-	outImage("picture.png", image, width, height);
+	sprintf_s(filename, "picture %d seconds.png", s);
+
+	outImage(filename, image, width, height);
 }
