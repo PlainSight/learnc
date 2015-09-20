@@ -8,25 +8,24 @@
 #define ARRAYSIZE 64
 
 struct SuperColor {
+	octtree* location;
 	int x;
 	int y;
 	unsigned char r;
 	unsigned char g;
 	unsigned char b;
-	octtree* location;
 };
 
 struct OctTree {
+	supercolor* colors[ARRAYSIZE];
+	octtree* children[8];
+	octtree* parent;
 	int minx;
 	int miny;
 	int minz;
 	int maxx;
 	int maxy;
 	int maxz;
-	
-	supercolor* colors[ARRAYSIZE];
-	octtree* children[8];
-	octtree* parent;
 	int size;
 	//hasChildren, 0 = no and not initialized, 1 = no but initialized, 2 = yes
 	unsigned short hasChildren;
