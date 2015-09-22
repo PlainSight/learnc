@@ -299,6 +299,11 @@ void setPixel(unsigned char* image, int width, int height, supercolor* color, oc
 		if(!set) {
 			removeFromTree(closestNeighbour->location, closestNeighbour);			
 		} else {
+			//if there is only 1 space left the closest color will no longer be a valid neighbour after this color is placed
+			if(numopen == 1) {
+				removeFromTree(closestNeighbour->location, closestNeighbour);
+			}
+
 			int placement = (*pseudoRandom) % numopen;
 			
 			(*pseudoRandom)++;
@@ -336,6 +341,8 @@ void placeFirstPixel(unsigned char* image, int width, int height, octtree* tree,
 }
 
 int main() {
+
+	setbuf(stdout, NULL);
 
 	octtree* root = createOctTree(0, 0, 0, 256, 256, 256, NULL);
 
