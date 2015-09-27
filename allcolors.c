@@ -162,7 +162,6 @@ int shouldVisitTree(octtree* tree, supercolor* nom, supercolor* nearest) {
 	int dy = isouty * (((int)nom->g) - cy);
 	int dz = isoutz * (((int)nom->b) - cz);
 
-	//this distance is accurate if the color value is not within any min max range
 	int distancesqr = dx*dx + dy*dy + dz*dz;
 
 	return getColorDistance(nom, nearest) > distancesqr;
