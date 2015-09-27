@@ -91,8 +91,6 @@ void putColorInChildTree(octtree* tree, supercolor* color) {
 
 void removeFromTree(octtree* tree, supercolor* color) {
 
-	//printf("b\n");
-
 	for(int i = 0; i < ARRAYSIZE; i++) {
 		if(tree->colors[i] == color) {
 			tree->colors[i] = tree->colors[tree->size - 1];
@@ -127,26 +125,13 @@ void removeFromTree(octtree* tree, supercolor* color) {
 
 void putColorInTree(octtree* tree, supercolor* color) {
 
-	//printf("c\n");
-
 	if(tree->hasChildren == 2) {
-
-		//printf("cc\n");
-
 		putColorInChildTree(tree, color);
-
-		//printf("ccc\n");
 	} else {
 		if(tree->size < ARRAYSIZE) {
-
-			//printf("cccc\n");
-
 			tree->colors[tree->size] = color;
 			color->location = tree;
 		} else {
-
-			//printf("ccccc\n");
-
 			splitOctTree(tree);
 			putColorInChildTree(tree, color);
 		}
@@ -157,22 +142,33 @@ void putColorInTree(octtree* tree, supercolor* color) {
 
 int shouldVisitTree(octtree* tree, supercolor* nom, supercolor* nearest) {
 
-	//printf("d\n");
+	//mid values
 
-	int aa = ((int) nom->r) - (tree->minx + tree->maxx) / 2;
-	int bb = ((int) nom->g) - (tree->miny + tree->maxy) / 2;
-	int cc = ((int) nom->b) - (tree->minz + tree->maxz) / 2;
+	int mx = (tree->minx + tree->maxx) / 2;
+	int my = (tree->miny + tree->maxy) / 2;
+	int mz = (tree->minz + tree->maxz) / 2;
 
-	float dd = 0.71f * (tree->maxx - tree->minx);
+	//closest corner values
 
-	float distancesqr = (aa*aa + bb*bb + cc*cc) - dd*dd;
+	int cx = (nom->r < mx) * tree->minx + (nom->r > mx) * tree->maxx;
+	int cy = (nom->g < my) * tree->miny + (nom->g > my) * tree->maxy;
+	int cz = (nom->b < mz) * tree->minz + (nom->b > mz) * tree->maxz;
+
+	int isoutx = (nom->r >= tree->maxx) | (nom->r < tree->minx);
+	int isouty = (nom->g >= tree->maxy) | (nom->g < tree->miny);
+	int isoutz = (nom->b >= tree->maxz) | (nom->b < tree->minz);
+
+	int dx = isoutx * (((int)nom->r) - cx);
+	int dy = isouty * (((int)nom->g) - cy);
+	int dz = isoutz * (((int)nom->b) - cz);
+
+	//this distance is accurate if the color value is not within any min max range
+	int distancesqr = dx*dx + dy*dy + dz*dz;
 
 	return getColorDistance(nom, nearest) > distancesqr;
 }
 
 supercolor* findNearestColorInTree(octtree* tree, supercolor* nom, supercolor* nearest) {
-
-	//printf("e\n");
 
 	if(tree->size == 0 || (nearest != NULL && !shouldVisitTree(tree, nom, nearest))) {
 		return nearest;
@@ -212,8 +208,6 @@ supercolor* findNearestColorInTree(octtree* tree, supercolor* nom, supercolor* n
 }
 
 void splitOctTree(octtree* tree) {
-
-	//printf("f\n");
 
 	int midx = ( tree->minx + tree->maxx ) / 2;
 	int midy = ( tree->miny + tree->maxy ) / 2;
@@ -265,8 +259,6 @@ void outImage(const char* filename, const unsigned char* image, unsigned width, 
 
 void setPixel(unsigned char* image, int width, int height, supercolor* color, octtree* tree, int* pseudoRandom) {
 	int set = 0;
-
-	//printf("%d %d %d\n", color->r, color->g, color->b);
 
 	int openSpaces[8][2];
 
