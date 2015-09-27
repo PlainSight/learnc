@@ -1,7 +1,6 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<time.h>
-#include<math.h>
 
 #include "allcolors.h"
 #include "lodepng.h"
@@ -143,15 +142,30 @@ void putColorInTree(octtree* tree, supercolor* color) {
 
 int shouldVisitTree(octtree* tree, supercolor* nom, supercolor* nearest) {
 
-	int aa = ((int) nom->r) - (tree->minx + tree->maxx) / 2;
-	int bb = ((int) nom->g) - (tree->miny + tree->maxy) / 2;
-	int cc = ((int) nom->b) - (tree->minz + tree->maxz) / 2;
+	//mid values
 
-	float dd = 0.71f * (tree->maxx - tree->minx);
+	int mx = (tree->minx + tree->maxx) / 2;
+	int my = (tree->miny + tree->maxy) / 2;
+	int mz = (tree->minz + tree->maxz) / 2;
 
-	float distance = sqrt(aa*aa + bb*bb + cc*cc) - dd;
+	//closest corner values
 
-	return sqrt(getColorDistance(nom, nearest)) > distance;
+	int cx = (nom->r < mx) * tree->minx + (nom->r > mx) * tree->maxx;
+	int cy = (nom->g < my) * tree->miny + (nom->g > my) * tree->maxy;
+	int cz = (nom->b < mz) * tree->minz + (nom->b > mz) * tree->maxz;
+
+	int isoutx = (nom->r >= tree->maxx) | (nom->r < tree->minx);
+	int isouty = (nom->g >= tree->maxy) | (nom->g < tree->miny);
+	int isoutz = (nom->b >= tree->maxz) | (nom->b < tree->minz);
+
+	int dx = isoutx * (((int)nom->r) - cx);
+	int dy = isouty * (((int)nom->g) - cy);
+	int dz = isoutz * (((int)nom->b) - cz);
+
+	//this distance is accurate if the color value is not within any min max range
+	int distancesqr = dx*dx + dy*dy + dz*dz;
+
+	return getColorDistance(nom, nearest) > distancesqr;
 }
 
 supercolor* findNearestColorInTree(octtree* tree, supercolor* nom, supercolor* nearest) {
