@@ -5,7 +5,7 @@
 #include "allcolors.h"
 #include "lodepng.h"
 
-#define ARRAYSIZE 64
+#define ARRAYSIZE 32
 
 struct SuperColor {
 	octtree* location;
@@ -190,18 +190,22 @@ supercolor* findNearestColorInTree(octtree* tree, supercolor* nom, supercolor* n
 		}
 		return nearest;
 	} else {
-		for(int i = 0; i < 8; i++) {
-			supercolor* temp = findNearestColorInTree(tree->children[i], nom, nearest);
+		//get a good first nearest candidate
 
-			if(temp == NULL) continue;
-			
-			if(nearest == NULL) {
-				nearest = temp;
-			} else {
-				if(getColorDistance(nom, temp) < getColorDistance(nom, nearest)) {
-					nearest = temp;
-				}
-			}
+		int midx = (tree->maxx + tree->minx) / 2;
+		int midy = (tree->maxy + tree->miny) / 2;
+		int midz = (tree->maxz + tree->minz) / 2;
+
+		int bestChild = 4 * (nom->r > midx)
+									+	2 * (nom->g > midy)
+									+			(nom->b > midz);
+
+		nearest = findNearestColorInTree(tree->children[bestChild], nom, nearest);
+
+		for(int i = 0; i < 8; i++) {
+			if (i == bestChild) continue;
+
+			nearest = findNearestColorInTree(tree->children[i], nom, nearest);
 		}
 		return nearest;
 	}
