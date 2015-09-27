@@ -149,7 +149,7 @@ int shouldVisitTree(octtree* tree, supercolor* nom, supercolor* nearest) {
 
 	float dd = 0.71f * (tree->maxx - tree->minx);
 
-	float distance = sqrt(aa*aa + bb*bb + cc*cc) - sqrt(dd*dd);
+	float distance = sqrt(aa*aa + bb*bb + cc*cc) - dd;
 
 	return sqrt(getColorDistance(nom, nearest)) > distance;
 }
