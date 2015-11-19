@@ -5,6 +5,12 @@
 #include "allcolors.h"
 #include "lodepng.h"
 
+#if defined(__APPLE__)
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
+
 #define ARRAYSIZE 32
 
 struct SuperColor {
@@ -30,6 +36,62 @@ struct OctTree {
 	//hasChildren, 0 = no and not initialized, 1 = no but initialized, 2 = yes
 	unsigned short hasChildren;
 };
+
+int wd;
+
+//OPEN GL STUFF
+
+void display(void) {
+	loopIter();
+	glFlush();
+}
+
+int verts[4][2];
+
+void drawToScreenOrSomething(supercolor* color) {
+	int x = color->x;
+	int y = color->y;
+
+	verts[0][0] = x;
+	verts[0][1] = y;
+	verts[1][0] = x+1;
+	verts[1][1] = y;
+	verts[2][0] = x+1;
+	verts[2][1] = y+1;
+	verts[3][0] = x;
+	verts[3][1] = y+1;
+
+	glColor3b(color->r/2, color->g/2, color->b/2);
+
+	glBegin(GL_POLYGON);
+		glVertex2iv((GLint *) verts[0]);
+		glVertex2iv((GLint *) verts[1]);
+		glVertex2iv((GLint *) verts[2]);
+		glVertex2iv((GLint *) verts[3]);
+	glEnd();
+}
+
+void initDisplay(void) {
+	glFlush();
+}
+
+void reshape(int w, int h)
+{
+  GLdouble width = (GLdouble) w;
+  GLdouble height = (GLdouble) h;
+
+  glViewport(0, 0, (GLsizei) width, (GLsizei) height);
+
+  /* do an orthographic parallel projection with the coordinate
+     system set to first quadrant, limited by screen/window size */
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glOrtho(0.0, width, 0.0, height, -1.f, 1.f);
+
+  return;
+}
+
+//ALL COLORS STUFF
 
 supercolor createSuperColor(int r, int g, int b) {
 
@@ -314,6 +376,8 @@ void setPixel(unsigned char* image, int width, int height, supercolor* color, oc
 			color->x = openSpaces[placement][0];
 			color->y = openSpaces[placement][1];
 
+			drawToScreenOrSomething(color);
+
 			putColorInTree(tree, color);
 		}
 	}
@@ -331,18 +395,43 @@ void placeFirstPixel(unsigned char* image, int width, int height, octtree* tree,
 	color->x = width / 2;
 	color->y = height / 2;
 
+	drawToScreenOrSomething(color);
+
 	putColorInTree(tree, color);
 
 	printf("placed first pixel\n");
 }
 
-int main() {
+supercolor* colors;
+octtree* root;
+unsigned char* image;
+int width = 500;
+int height = 500;
+int pseudoRandom = 0;
+int todo = 500 * 500;
+time_t start;
 
+int main(int argc, char** argv) {
+
+	//GL
+	glutInit(&argc, argv);
+
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+	glutInitWindowSize(width, height);
+	glutInitWindowPosition(0, 0);
+	wd = glutCreateWindow("Main window");
+
+	glutReshapeFunc(reshape);
+
+	glutDisplayFunc(initDisplay);
+	glutIdleFunc(display);
+
+	//STUFF
 	setbuf(stdout, NULL);
 
-	octtree* root = createOctTree(0, 0, 0, 256, 256, 256, NULL);
+	root = createOctTree(0, 0, 0, 256, 256, 256, NULL);
 
-	supercolor* colors = (supercolor *) malloc(16777216 * sizeof(supercolor));
+	colors = (supercolor *) malloc(16777216 * sizeof(supercolor));
 
 	int j = 0;
 	for(int i = 0; i < 16777216; i++) {
@@ -352,23 +441,28 @@ int main() {
 		colors[j++] = createSuperColor(r, g, b);
 	}
 
-	time_t start = time(0);
+	start = time(0);
 
 	srand(start);
-
-	int width = 4096;
-	int height = 4096;
-	unsigned char* image = (unsigned char*) calloc(width * height, 4);
-
-	int pseudoRandom = 0;
+	
+	image = (unsigned char*) calloc(width * height, 4);
 
 	printf("created colors\n");
 
 	placeFirstPixel(image, width, height, root, &colors[0]);
 
-	int todo = width * height;
+	glClear(GL_COLOR_BUFFER_BIT);
 
-	for(int i = 1; i < todo; i++) {
+	glutMainLoop();
+}
+
+int loopval = 1;
+
+void loopIter(void) {
+
+	for(int iterCount = 0; loopval < todo && iterCount < 1000; loopval++) {
+		int i = loopval;
+		iterCount++;
 
 		int r = ((rand() & 0xFF) << 16) | (rand() & 0x0000FFFF);
 
@@ -379,15 +473,9 @@ int main() {
 		colors[random] = temp;
 
 		setPixel(image, width, height, &colors[i], root, &pseudoRandom);
-
-		if (i % 100000 == 0) {
-			time_t diff = time(0) - start;
-
-			int s = diff;
-
-			printf("\r%d%% complete, time taken %ds", (int)((i * 100) / (float)todo), s);
-		}
 	}
+
+	if(loopval < todo) return;
 
 	time_t diff = time(0) - start;
 
@@ -397,4 +485,11 @@ int main() {
 	sprintf(filename, "picture %lli - %llis.png", now, diff);
 
 	outImage(filename, image, width, height);
+
+	glFlush();
+
+	sleep(20000);
+
+	glutDestroyWindow(wd);
+	exit(0);
 }

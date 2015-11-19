@@ -10,3 +10,5 @@ supercolor* findNearestColorInTree(octtree* tree, supercolor* nom, supercolor* n
 int shouldVisitTree(octtree* tree, supercolor* nom, supercolor* nearest);
 
 int getColorDistance(supercolor* color, supercolor* other);
+
+void loopIter(void);
