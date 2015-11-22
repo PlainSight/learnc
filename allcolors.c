@@ -61,7 +61,7 @@ void drawToScreenOrSomething(supercolor* color) {
 	verts[3][0] = x;
 	verts[3][1] = y+1;
 
-	glColor3b(color->r/2, color->g/2, color->b/2);
+	glColor3ub(color->r, color->g, color->b);
 
 	glBegin(GL_POLYGON);
 		glVertex2iv((GLint *) verts[0]);
@@ -86,7 +86,7 @@ void reshape(int w, int h)
      system set to first quadrant, limited by screen/window size */
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(0.0, width, 0.0, height, -1.f, 1.f);
+  glOrtho(0.0, 4096, 0.0, 4096, -1.f, 1.f);
 
   return;
 }
@@ -405,10 +405,10 @@ void placeFirstPixel(unsigned char* image, int width, int height, octtree* tree,
 supercolor* colors;
 octtree* root;
 unsigned char* image;
-int width = 500;
-int height = 500;
+int width = 4096;
+int height = 4096;
 int pseudoRandom = 0;
-int todo = 500 * 500;
+int todo = 4096 * 4096;
 time_t start;
 
 int main(int argc, char** argv) {
@@ -417,7 +417,7 @@ int main(int argc, char** argv) {
 	glutInit(&argc, argv);
 
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-	glutInitWindowSize(width, height);
+	glutInitWindowSize(500, 500);
 	glutInitWindowPosition(0, 0);
 	wd = glutCreateWindow("Main window");
 
@@ -477,6 +477,8 @@ void loopIter(void) {
 
 	if(loopval < todo) return;
 
+	glFlush();
+
 	time_t diff = time(0) - start;
 
 	time_t now = time(0);
@@ -486,9 +488,7 @@ void loopIter(void) {
 
 	outImage(filename, image, width, height);
 
-	glFlush();
-
-	sleep(20000);
+	sleep(2);
 
 	glutDestroyWindow(wd);
 	exit(0);
