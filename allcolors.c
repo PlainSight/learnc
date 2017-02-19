@@ -5,9 +5,16 @@
 #include "allcolors.h"
 #include "lodepng.h"
 
-#define ARRAYSIZE 32
+#define ARRAYSIZE 48
 
-typedef unsigned long bfield_t[ 256*256*256/sizeof(long) ];
+#define REDBITDEPTH 8
+#define GREENBITDEPTH 8
+#define BLUEBITDEPTH 8
+
+#define WIDTH 4096
+#define HEIGHT 4096
+#define TODO (WIDTH*HEIGHT)
+#define COLORS 16777216 //256*256*256
 
 struct SuperColor {
 	octtree* location;
@@ -258,7 +265,7 @@ void outImage(const char* filename, const unsigned char* image, unsigned width, 
   if(error) printf("error %u: %s\n", error, lodepng_error_text(error));
 }
 
-void setPixel(unsigned char* image, int width, int height, supercolor* color, octtree* tree, int* pseudoRandom) {
+void setPixel(unsigned int* open, supercolor* color, octtree* tree, int* pseudoRandom) {
 	int set = 0;
 
 	int openSpaces[8][2];
@@ -273,18 +280,20 @@ void setPixel(unsigned char* image, int width, int height, supercolor* color, oc
 		int maxy = closestNeighbour->y + 1;
 
 		minx = minx < 0 ? 0 : minx;
-		maxx = maxx >= width ? width-1 : maxx;
+		maxx = maxx >= WIDTH ? WIDTH-1 : maxx;
 		miny = miny < 0 ? 0 : miny;
-		maxy = maxy >= height ? height-1 : maxy;
+		maxy = maxy >= HEIGHT ? HEIGHT-1 : maxy;
 		
 		int numopen = 0;
 
 		for(int x = minx; x <= maxx; x++) {
 			for(int y = miny; y <= maxy; y++) {
 
-				int place = 4 * ((y * height) + x);
+				int place = (y * HEIGHT) + x;
+				int bindex = place / (8*sizeof(int));
+				int b = place % (8*sizeof(int));
 
-				if(image[place+3] != 255) {
+				if(!(open[bindex] & (1 << b))) {
 					openSpaces[numopen][0] = x;
 					openSpaces[numopen][1] = y;
 					numopen++;
@@ -302,39 +311,74 @@ void setPixel(unsigned char* image, int width, int height, supercolor* color, oc
 			}
 
 			int placement = (*pseudoRandom) % numopen;
+
+			int placeX = openSpaces[placement][0];
+			int placeY = openSpaces[placement][1];
 			
 			(*pseudoRandom)++;
 
-			int place = 4 * ((openSpaces[placement][1] * height) + openSpaces[placement][0]);
+			int place = (placeY * HEIGHT) + placeX;
+			int bindex = place / (8*sizeof(int));
+			int b = place % (8*sizeof(int));
 
-			image[place] = color->r;
-			image[place+1] = color->g;
-			image[place+2] = color->b;
-			image[place+3] = 255;
+			open[bindex] |= (1 << b);
 
-			color->x = openSpaces[placement][0];
-			color->y = openSpaces[placement][1];
+			color->x = placeX;
+			color->y = placeY;
+
+			// avoid putting the color in the tree if at all possible
+			/*if(numopen == 1) {
+				
+				minx = placeX - 1;
+				maxx = placeX + 1;
+				miny = placeY - 1;
+				maxy = placeY + 1;
+
+				minx = minx < 0 ? 0 : minx;
+				maxx = maxx >= WIDTH ? WIDTH-1 : maxx;
+				miny = miny < 0 ? 0 : miny;
+				maxy = maxy >= HEIGHT ? HEIGHT-1 : maxy;
+				
+				int openNeighbours = 0;
+
+				for(int x = minx; x <= maxx; x++) {
+					for(int y = miny; y <= maxy; y++) {
+
+					 	place = (y * HEIGHT) + x;
+						bindex = place / (8*sizeof(int));
+						b = place % (8*sizeof(int));
+
+						if(!(open[bindex] & (1 << b))) {
+							openNeighbours++;
+						}
+					}
+				}
+
+				if(openNeighbours == 0) {
+					return;
+				}
+			}*/
 
 			putColorInTree(tree, color);
 		}
 	}
-
 }
 
-void placeFirstPixel(unsigned char* image, int width, int height, octtree* tree, supercolor* color) {
-	int place = 4 * ((height * height / 2) + width / 2);
+void generateImage(supercolor* colors, char* filename) {
+	unsigned char* image = (unsigned char*) calloc(WIDTH * HEIGHT, 4);
 
-	image[place] = color->r;
-	image[place+1] = color->g;
-	image[place+2] = color->b;
-	image[place+3] = 255;
+	for(int i = 0; i < WIDTH*HEIGHT; i++) {
+		supercolor col = colors[i];
 
-	color->x = width / 2;
-	color->y = height / 2;
+		int place = 4 * ((col.y * WIDTH) + col.x);
 
-	putColorInTree(tree, color);
+		image[place] = col.r;
+		image[place+1] = col.g;
+		image[place+2] = col.b;
+		image[place+3] = 255;
+	}
 
-	printf("placed first pixel\n");
+	outImage(filename, image, WIDTH, HEIGHT);
 }
 
 int main() {
@@ -343,53 +387,68 @@ int main() {
 
 	octtree* root = createOctTree(0, 0, 0, 256, 256, 256, NULL);
 
-	supercolor* colors = (supercolor *) malloc(16777216 * sizeof(supercolor));
+	supercolor* colors = (supercolor *) calloc(COLORS, sizeof(supercolor));
 
-	for(int i = 0; i < 16777216; i++) {
-		int r = (i & 0x00FF0000) >> 16;
-		int g = (i & 0x0000FF00) >> 8;
-		int b = i & 0x000000FF;
+	int redMask = 0x100 - (1 << (8 - REDBITDEPTH));
+	int greenMask = 0x100 - (1 << (8 - GREENBITDEPTH));
+	int blueMask = 0x100 - (1 << (8 - BLUEBITDEPTH));
+
+	printf("masks:\nred: %x\ngreen: %x\nblue: %x\n", redMask, greenMask, blueMask);
+
+	redMask = redMask << 16;
+	greenMask = greenMask << 8;
+
+	for(int i = 0; i < COLORS; i++) {
+		int r = (i & redMask) >> 16;
+		int g = (i & greenMask) >> 8;
+		int b = i & blueMask;
 		colors[i] = createSuperColor(r, g, b);
 	}
 
-	for(int i = 0; i < 16777216; i++) {
+	for(int i = 0; i < COLORS; i++) {
 		int r = ((rand() & 0xFF) << 16) | (rand() & 0x0000FFFF);
 
-		int random = i + (r % (16777216 - i));
+		int random = i + (r % (COLORS - i));
 
 		supercolor temp = colors[i];
 		colors[i] = colors[random];
 		colors[random] = temp;
 	}
 
-	time_t start = time(0);
+	printf("created colors\n");
 
-	srand(start);
-
-	int width = 4096;
-	int height = 4096;
-
-	bfield_t open;
-
-	unsigned char* image = (unsigned char*) calloc(width * height, 4);
+	unsigned int* open = (unsigned int*) calloc(WIDTH*HEIGHT/(8*sizeof(int)), sizeof(int));
 
 	int pseudoRandom = 0;
 
-	printf("created colors\n");
+	time_t start = time(0);
+	srand(start);
 
-	placeFirstPixel(image, width, height, root, &colors[0]);
+	colors[0].x = WIDTH / 2;
+	colors[0].y = HEIGHT / 2;
 
-	int todo = width * height;
+	int place = ((HEIGHT * HEIGHT / 2) + WIDTH / 2);
+	int bindex = place / (8*sizeof(int));
+	int b = place % (8*sizeof(int));
 
-	for(int i = 1; i < todo; i++) {
-		setPixel(image, width, height, &colors[i], root, &pseudoRandom);
+	open[bindex] |= (1 << b);
 
-		if (i % 100000 == 0) {
+	putColorInTree(root, &colors[0]);
+
+	for(int i = 1; i < TODO; i++) {
+		setPixel(open, &colors[i], root, &pseudoRandom);
+
+		if (i % 200000 == 0) {
 			time_t diff = time(0) - start;
 
 			int s = diff;
 
-			printf("\r%d%% complete, time taken %ds", (int)((i * 100) / (float)todo), s);
+			printf("\r%d%% complete, time taken %ds", (int)((i * 100) / (float)TODO), s);
+
+			//printf("set %d, %d \n", colors[i].x, colors[i].y);
+			//char fn[50];
+			//sprintf(fn, "%d completed.png", i);
+			//generateImage(colors, fn);
 		}
 	}
 
@@ -398,7 +457,7 @@ int main() {
 	time_t now = time(0);
 	char filename[50];
 
-	sprintf(filename, "picture %lli - %llis.png", now, diff);
+	sprintf(filename, "picture %li - %lis.png", now, diff);
 
-	outImage(filename, image, width, height);
+	generateImage(colors, filename);
 }
