@@ -7,6 +7,8 @@
 
 #define ARRAYSIZE 32
 
+typedef unsigned long bfield_t[ 256*256*256/sizeof(long) ];
+
 struct SuperColor {
 	octtree* location;
 	int x;
@@ -343,12 +345,21 @@ int main() {
 
 	supercolor* colors = (supercolor *) malloc(16777216 * sizeof(supercolor));
 
-	int j = 0;
 	for(int i = 0; i < 16777216; i++) {
 		int r = (i & 0x00FF0000) >> 16;
 		int g = (i & 0x0000FF00) >> 8;
 		int b = i & 0x000000FF;
-		colors[j++] = createSuperColor(r, g, b);
+		colors[i] = createSuperColor(r, g, b);
+	}
+
+	for(int i = 0; i < 16777216; i++) {
+		int r = ((rand() & 0xFF) << 16) | (rand() & 0x0000FFFF);
+
+		int random = i + (r % (16777216 - i));
+
+		supercolor temp = colors[i];
+		colors[i] = colors[random];
+		colors[random] = temp;
 	}
 
 	time_t start = time(0);
@@ -357,6 +368,9 @@ int main() {
 
 	int width = 4096;
 	int height = 4096;
+
+	bfield_t open;
+
 	unsigned char* image = (unsigned char*) calloc(width * height, 4);
 
 	int pseudoRandom = 0;
@@ -368,15 +382,6 @@ int main() {
 	int todo = width * height;
 
 	for(int i = 1; i < todo; i++) {
-
-		int r = ((rand() & 0xFF) << 16) | (rand() & 0x0000FFFF);
-
-		int random = i + (r % (16777216 - i));
-
-		supercolor temp = colors[i];
-		colors[i] = colors[random];
-		colors[random] = temp;
-
 		setPixel(image, width, height, &colors[i], root, &pseudoRandom);
 
 		if (i % 100000 == 0) {
