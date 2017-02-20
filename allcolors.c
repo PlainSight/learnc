@@ -6,6 +6,7 @@
 #include "lodepng.h"
 
 #define ARRAYSIZE 48
+#define ARRAYSHRINK 36
 
 #define REDBITDEPTH 8
 #define GREENBITDEPTH 8
@@ -13,7 +14,7 @@
 
 #define WIDTH 4096
 #define HEIGHT 4096
-#define TODO (WIDTH*HEIGHT)
+#define TODO 16777216 //(WIDTH*HEIGHT)
 #define COLORS 16777216 //256*256*256
 
 struct SuperColor {
@@ -52,8 +53,7 @@ supercolor createSuperColor(int r, int g, int b) {
 
 octtree* createOctTree(int minx, int miny, int minz,
 	int maxx, int maxy, int maxz,
-	octtree *p) {
-	octtree* tree = (octtree *)malloc(sizeof(octtree));
+	octtree* p, octtree* tree) {
 
 	tree->parent = p;
 
@@ -66,17 +66,10 @@ octtree* createOctTree(int minx, int miny, int minz,
 	tree->minz = minz;
 	tree->maxz = maxz;
 
-	tree->hasChildren = 0;
-	tree->size = 0;
+	//tree->hasChildren = 0;
+	//tree->size = 0;
 
 	return tree;
-}
-
-int hasPointInside(octtree* tree, supercolor* color) {
-
-	return tree->minx <= color->r && color->r < tree->maxx 
-		&& tree->miny <= color->g && color->g < tree->maxy 
-		&& tree->minz <= color->b && color->b < tree->maxz;
 }
 
 int getColorDistance(supercolor* color, supercolor* other) {
@@ -89,13 +82,11 @@ int getColorDistance(supercolor* color, supercolor* other) {
 }
 
 void putColorInChildTree(octtree* tree, supercolor* color) {
+	int index = 4 * (2 * color->r > tree->maxx + tree->minx)
+						+	2 * (2 * color->g > tree->maxy + tree->miny)
+						+			(2 * color->b > tree->maxz + tree->minz);
 
-	for(int i = 0; i < 8; i++) {
-		if(hasPointInside(tree->children[i], color)) {
-			putColorInTree(tree->children[i], color);
-			return;
-		}
-	}
+	putColorInTree(tree->children[index], color);
 }
 
 void removeFromTree(octtree* tree, supercolor* color) {
@@ -110,7 +101,7 @@ void removeFromTree(octtree* tree, supercolor* color) {
 	for(octtree* t = tree; t != NULL; t = t->parent) {
 		(t->size)--;
 
-		if(t->size < ARRAYSIZE/2 && t->hasChildren == 2) {
+		if(t->size < ARRAYSHRINK && t->hasChildren == 2) {
 
 			int tColorIndex = 0;
 
@@ -196,13 +187,9 @@ supercolor* findNearestColorInTree(octtree* tree, supercolor* nom, supercolor* n
 	} else {
 		//get a good first nearest candidate
 
-		int midx = (tree->maxx + tree->minx) / 2;
-		int midy = (tree->maxy + tree->miny) / 2;
-		int midz = (tree->maxz + tree->minz) / 2;
-
-		int bestChild = 4 * (nom->r > midx)
-									+	2 * (nom->g > midy)
-									+			(nom->b > midz);
+		int bestChild = 4 * (2 * nom->r > tree->maxx + tree->minx)
+									+	2 * (2 * nom->g > tree->maxy + tree->miny)
+									+			(2 * nom->b > tree->maxz + tree->minz);
 
 		nearest = findNearestColorInTree(tree->children[bestChild], nom, nearest);
 
@@ -222,31 +209,33 @@ void splitOctTree(octtree* tree) {
 	int midz = ( tree->minz + tree->maxz ) / 2;
 
 	if(tree->hasChildren == 0) {
+		octtree* memory = (octtree *) calloc(8, sizeof(octtree));
+
 		tree->children[0] = createOctTree(tree->minx, tree->miny, tree->minz,
 										  		midx, 		midy, 		midz, 
-										  tree);
+										  tree, &memory[0]);
 		tree->children[1] = createOctTree(tree->minx, tree->miny, 		midz,
 										  		midx, 		midy, tree->maxz, 
-										  tree);
+										  tree, &memory[1]);
 		tree->children[2] = createOctTree(tree->minx, 		midy, tree->minz,
 										  		midx, tree->maxy, 		midz, 
-										  tree);
+										  tree, &memory[2]);
 		tree->children[3] = createOctTree(tree->minx, 		midy, 		midz,
 										  		midx, tree->maxy, tree->maxz, 
-										  tree);
+										  tree, &memory[3]);
 
 		tree->children[4] = createOctTree(		midx, tree->miny, tree->minz,
 										  tree->maxx, 		midy, 		midz, 
-										  tree);
+										  tree, &memory[4]);
 		tree->children[5] = createOctTree(		midx, tree->miny, 		midz,
 										  tree->maxx, 		midy, tree->maxz, 
-										  tree);
+										  tree, &memory[5]);
 		tree->children[6] = createOctTree(		midx, 		midy, tree->minz,
 										  tree->maxx, tree->maxy, 		midz, 
-										  tree);
+										  tree, &memory[6]);
 		tree->children[7] = createOctTree(		midx, 		midy, 		midz,
 										  tree->maxx, tree->maxy, tree->maxz, 
-										  tree);
+										  tree, &memory[7]);
 	}
 
 	tree->hasChildren = 2;
@@ -385,7 +374,7 @@ int main() {
 
 	setbuf(stdout, NULL);
 
-	octtree* root = createOctTree(0, 0, 0, 256, 256, 256, NULL);
+	octtree* root = createOctTree(0, 0, 0, 256, 256, 256, NULL, (octtree *) malloc(sizeof(octtree)));
 
 	supercolor* colors = (supercolor *) calloc(COLORS, sizeof(supercolor));
 
@@ -456,6 +445,8 @@ int main() {
 
 	time_t now = time(0);
 	char filename[50];
+
+	printf("\n");
 
 	sprintf(filename, "picture %li - %lis.png", now, diff);
 
