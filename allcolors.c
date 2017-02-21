@@ -374,7 +374,7 @@ int main() {
 
 	setbuf(stdout, NULL);
 
-	octtree* root = createOctTree(0, 0, 0, 256, 256, 256, NULL, (octtree *) malloc(sizeof(octtree)));
+	octtree* root = createOctTree(0, 0, 0, 256, 256, 256, NULL, (octtree *) calloc(1, sizeof(octtree)));
 
 	supercolor* colors = (supercolor *) calloc(COLORS, sizeof(supercolor));
 
@@ -394,6 +394,8 @@ int main() {
 		colors[i] = createSuperColor(r, g, b);
 	}
 
+	srand(time(NULL));
+
 	for(int i = 0; i < COLORS; i++) {
 		int r = ((rand() & 0xFF) << 16) | (rand() & 0x0000FFFF);
 
@@ -411,8 +413,7 @@ int main() {
 	int pseudoRandom = 0;
 
 	time_t start = time(0);
-	srand(start);
-
+	
 	colors[0].x = WIDTH / 2;
 	colors[0].y = HEIGHT / 2;
 
