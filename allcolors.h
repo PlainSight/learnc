@@ -1,12 +1,13 @@
 typedef struct OctTree octtree;
 typedef struct SuperColor supercolor;
+typedef struct ColorPointer colorpointer;
 
-void putColorInTree(octtree* tree, supercolor* color);
-void removeFromTree(octtree* tree, supercolor* color);
-void putColorInChildTree(octtree* tree, supercolor* color);
-int hasPointInside(octtree* tree, supercolor* color);
+void putColorInTree(octtree* tree, colorpointer color);
+void removeFromTree(octtree* tree, colorpointer color);
+void putColorInChildTree(octtree* tree, colorpointer color);
+int hasPointInside(octtree* tree, colorpointer color);
 void splitOctTree(octtree* tree);
-supercolor* findNearestColorInTree(octtree* tree, supercolor* nom, supercolor* nearest);
-int shouldVisitTree(octtree* tree, supercolor* nom, supercolor* nearest);
+colorpointer findNearestColorInTree(octtree* tree, colorpointer nom, colorpointer nearest);
+int shouldVisitTree(octtree* tree, colorpointer nom, colorpointer nearest);
 
-int getColorDistance(supercolor* color, supercolor* other);
+int getColorDistance(colorpointer color, colorpointer other);

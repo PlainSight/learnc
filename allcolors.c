@@ -19,15 +19,22 @@
 
 struct SuperColor {
 	octtree* location;
-	int x;
-	int y;
+	short x;
+	short y;
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
+};
+
+struct ColorPointer {
+	supercolor* pointer;
 	unsigned char r;
 	unsigned char g;
 	unsigned char b;
 };
 
 struct OctTree {
-	supercolor* colors[ARRAYSIZE];
+	colorpointer colors[ARRAYSIZE];
 	octtree* children[8];
 	octtree* parent;
 	int minx;
@@ -72,27 +79,27 @@ octtree* createOctTree(int minx, int miny, int minz,
 	return tree;
 }
 
-int getColorDistance(supercolor* color, supercolor* other) {
+int getColorDistance(colorpointer color, colorpointer other) {
 
-	int rd = (int) color->r - (int) other->r;
-	int gd = (int) color->g - (int) other->g;
-	int bd = (int) color->b - (int) other->b;
+	int rd = (int) color.r - (int) other.r;
+	int gd = (int) color.g - (int) other.g;
+	int bd = (int) color.b - (int) other.b;
 
 	return rd*rd + gd*gd + bd*bd;
 }
 
-void putColorInChildTree(octtree* tree, supercolor* color) {
-	int index = 4 * (2 * color->r > tree->maxx + tree->minx)
-						+	2 * (2 * color->g > tree->maxy + tree->miny)
-						+			(2 * color->b > tree->maxz + tree->minz);
+void putColorInChildTree(octtree* tree, colorpointer color) {
+	int index = 4 * (2 * color.r > tree->maxx + tree->minx)
+						+	2 * (2 * color.g > tree->maxy + tree->miny)
+						+			(2 * color.b > tree->maxz + tree->minz);
 
 	putColorInTree(tree->children[index], color);
 }
 
-void removeFromTree(octtree* tree, supercolor* color) {
+void removeFromTree(octtree* tree, colorpointer color) {
 
 	for(int i = 0; i < ARRAYSIZE; i++) {
-		if(tree->colors[i] == color) {
+		if(tree->colors[i].pointer == color.pointer) {
 			tree->colors[i] = tree->colors[tree->size - 1];
 			break;
 		}
@@ -115,7 +122,7 @@ void removeFromTree(octtree* tree, supercolor* color) {
 			}
 
 			for(int i = 0; i < t->size; i++) {
-				t->colors[i]->location = t;
+				t->colors[i].pointer->location = t;
 			}
 
 			t->hasChildren = 1;
@@ -123,14 +130,14 @@ void removeFromTree(octtree* tree, supercolor* color) {
 	}
 }
 
-void putColorInTree(octtree* tree, supercolor* color) {
+void putColorInTree(octtree* tree, colorpointer color) {
 
 	if(tree->hasChildren == 2) {
 		putColorInChildTree(tree, color);
 	} else {
 		if(tree->size < ARRAYSIZE) {
 			tree->colors[tree->size] = color;
-			color->location = tree;
+			color.pointer->location = tree;
 		} else {
 			splitOctTree(tree);
 			putColorInChildTree(tree, color);
@@ -140,7 +147,7 @@ void putColorInTree(octtree* tree, supercolor* color) {
 	(tree->size)++;
 }
 
-int shouldVisitTree(octtree* tree, supercolor* nom, supercolor* nearest) {
+int shouldVisitTree(octtree* tree, colorpointer nom, colorpointer nearest) {
 
 	//mid values
 
@@ -150,32 +157,32 @@ int shouldVisitTree(octtree* tree, supercolor* nom, supercolor* nearest) {
 
 	//closest corner values
 
-	int cx = (nom->r < mx) * tree->minx + (nom->r > mx) * tree->maxx;
-	int cy = (nom->g < my) * tree->miny + (nom->g > my) * tree->maxy;
-	int cz = (nom->b < mz) * tree->minz + (nom->b > mz) * tree->maxz;
+	int cx = (nom.r < mx) * tree->minx + (nom.r > mx) * tree->maxx;
+	int cy = (nom.g < my) * tree->miny + (nom.g > my) * tree->maxy;
+	int cz = (nom.b < mz) * tree->minz + (nom.b > mz) * tree->maxz;
 
-	int isoutx = (nom->r >= tree->maxx) | (nom->r < tree->minx);
-	int isouty = (nom->g >= tree->maxy) | (nom->g < tree->miny);
-	int isoutz = (nom->b >= tree->maxz) | (nom->b < tree->minz);
+	int isoutx = (nom.r >= tree->maxx) | (nom.r < tree->minx);
+	int isouty = (nom.g >= tree->maxy) | (nom.g < tree->miny);
+	int isoutz = (nom.b >= tree->maxz) | (nom.b < tree->minz);
 
-	int dx = isoutx * (((int)nom->r) - cx);
-	int dy = isouty * (((int)nom->g) - cy);
-	int dz = isoutz * (((int)nom->b) - cz);
+	int dx = isoutx * (((int)nom.r) - cx);
+	int dy = isouty * (((int)nom.g) - cy);
+	int dz = isoutz * (((int)nom.b) - cz);
 
 	int distancesqr = dx*dx + dy*dy + dz*dz;
 
 	return getColorDistance(nom, nearest) > distancesqr;
 }
 
-supercolor* findNearestColorInTree(octtree* tree, supercolor* nom, supercolor* nearest) {
+colorpointer findNearestColorInTree(octtree* tree, colorpointer nom, colorpointer nearest) {
 
-	if(tree->size == 0 || (nearest != NULL && !shouldVisitTree(tree, nom, nearest))) {
+	if(tree->size == 0 || (nearest.pointer != NULL && !shouldVisitTree(tree, nom, nearest))) {
 		return nearest;
 	}
 
 	if(tree->hasChildren < 2) {
 		for(int i = 0; i < tree->size; i++) {
-			if(nearest == NULL) {
+			if(nearest.pointer == NULL) {
 				nearest = tree->colors[i];
 			} else {
 				if(getColorDistance(nom, tree->colors[i]) < getColorDistance(nom, nearest)) {
@@ -187,9 +194,9 @@ supercolor* findNearestColorInTree(octtree* tree, supercolor* nom, supercolor* n
 	} else {
 		//get a good first nearest candidate
 
-		int bestChild = 4 * (2 * nom->r > tree->maxx + tree->minx)
-									+	2 * (2 * nom->g > tree->maxy + tree->miny)
-									+			(2 * nom->b > tree->maxz + tree->minz);
+		int bestChild = 4 * (2 * nom.r > tree->maxx + tree->minx)
+									+	2 * (2 * nom.g > tree->maxy + tree->miny)
+									+			(2 * nom.b > tree->maxz + tree->minz);
 
 		nearest = findNearestColorInTree(tree->children[bestChild], nom, nearest);
 
@@ -254,19 +261,23 @@ void outImage(const char* filename, const unsigned char* image, unsigned width, 
   if(error) printf("error %u: %s\n", error, lodepng_error_text(error));
 }
 
-void setPixel(unsigned int* open, supercolor* color, octtree* tree, int* pseudoRandom) {
+void setPixel(unsigned int* open, colorpointer color, octtree* tree, int* pseudoRandom) {
 	int set = 0;
 
 	int openSpaces[8][2];
 
 	while(!set) {
 		
-		supercolor* closestNeighbour = findNearestColorInTree(tree, color, NULL);
+		colorpointer nullpointer = { 
+			NULL
+	  };
+
+		colorpointer closestNeighbour = findNearestColorInTree(tree, color, nullpointer);
 						
-		int minx = closestNeighbour->x - 1;
-		int maxx = closestNeighbour->x + 1;
-		int miny = closestNeighbour->y - 1;
-		int maxy = closestNeighbour->y + 1;
+		int minx = closestNeighbour.pointer->x - 1;
+		int maxx = closestNeighbour.pointer->x + 1;
+		int miny = closestNeighbour.pointer->y - 1;
+		int maxy = closestNeighbour.pointer->y + 1;
 
 		minx = minx < 0 ? 0 : minx;
 		maxx = maxx >= WIDTH ? WIDTH-1 : maxx;
@@ -292,11 +303,11 @@ void setPixel(unsigned int* open, supercolor* color, octtree* tree, int* pseudoR
 		}
 		
 		if(!set) {
-			removeFromTree(closestNeighbour->location, closestNeighbour);			
+			removeFromTree(closestNeighbour.pointer->location, closestNeighbour);			
 		} else {
 			//if there is only 1 space left the closest color will no longer be a valid neighbour after this color is placed
 			if(numopen == 1) {
-				removeFromTree(closestNeighbour->location, closestNeighbour);
+				removeFromTree(closestNeighbour.pointer->location, closestNeighbour);
 			}
 
 			int placement = (*pseudoRandom) % numopen;
@@ -312,8 +323,8 @@ void setPixel(unsigned int* open, supercolor* color, octtree* tree, int* pseudoR
 
 			open[bindex] |= (1 << b);
 
-			color->x = placeX;
-			color->y = placeY;
+			color.pointer->x = placeX;
+			color.pointer->y = placeY;
 
 			// avoid putting the color in the tree if at all possible
 			/*if(numopen == 1) {
@@ -423,10 +434,24 @@ int main() {
 
 	open[bindex] |= (1 << b);
 
-	putColorInTree(root, &colors[0]);
+	colorpointer cp = {
+		&colors[0],
+		colors[0].r,
+		colors[0].g,
+		colors[0].b
+	};
+
+	putColorInTree(root, cp);
 
 	for(int i = 1; i < TODO; i++) {
-		setPixel(open, &colors[i], root, &pseudoRandom);
+		colorpointer colpo = {
+			&colors[i],
+			colors[i].r,
+			colors[i].g,
+			colors[i].b
+		};
+
+		setPixel(open, colpo, root, &pseudoRandom);
 
 		if (i % 200000 == 0) {
 			time_t diff = time(0) - start;
