@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<time.h>
+#include<math.h>
 
 #include "allcolors.h"
 #include "lodepng.h"
@@ -414,18 +415,29 @@ int main() {
 
 	time_t start = time(0);
 	
-	colors[0].x = WIDTH / 2;
-	colors[0].y = HEIGHT / 2;
+	for (int i = 0; i < 100; i++) {
+		double dist = pow(i, 0.4) * 300;
+		double scale = dist / 100.0;
+		int x = (WIDTH/2) + (int) (dist * sin(i * (M_PI / scale)));
+		int y = (HEIGHT/2) + (int) (dist * cos(i * (M_PI / scale)));
+		if (i == 0) {
+			x = WIDTH/2;
+			y = HEIGHT/2;
+		}
+		
+		colors[i].x = x;
+		colors[i].y = y;
 
-	int place = ((HEIGHT * HEIGHT / 2) + WIDTH / 2);
-	int bindex = place / (8*sizeof(int));
-	int b = place % (8*sizeof(int));
+		int place = (WIDTH * y) + x;
+		int bindex = place / (8*sizeof(int));
+		int b = place % (8*sizeof(int));
 
-	open[bindex] |= (1 << b);
+		open[bindex] |= (1 << b);
 
-	putColorInTree(root, &colors[0]);
-
-	for(int i = 1; i < TODO; i++) {
+		putColorInTree(root, &colors[i]);
+	}
+	
+	for(int i = 100; i < TODO; i++) {
 		setPixel(open, &colors[i], root, &pseudoRandom);
 
 		if (i % 200000 == 0) {
