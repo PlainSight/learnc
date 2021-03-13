@@ -414,18 +414,21 @@ int main() {
 
 	time_t start = time(0);
 	
-	colors[0].x = WIDTH / 2;
-	colors[0].y = HEIGHT / 2;
+	for (int i = 0; i < 64; i++) {
+		colors[i].x = (WIDTH * (1 + 2*(i % 8))) / 16;
+		colors[i].y = ((1 + 2*(i/8)) * WIDTH) / 16;
 
-	int place = ((HEIGHT * HEIGHT / 2) + WIDTH / 2);
-	int bindex = place / (8*sizeof(int));
-	int b = place % (8*sizeof(int));
+		int place = (i*16)*WIDTH + (i*16);
+		int bindex = place / (8*sizeof(int));
+		int b = place % (8*sizeof(int));
 
-	open[bindex] |= (1 << b);
+		open[bindex] |= (1 << b);
 
-	putColorInTree(root, &colors[0]);
+		putColorInTree(root, &colors[i]);
+		
+	}
 
-	for(int i = 1; i < TODO; i++) {
+	for(int i = 64; i < TODO; i++) {
 		setPixel(open, &colors[i], root, &pseudoRandom);
 
 		if (i % 200000 == 0) {
