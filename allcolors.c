@@ -415,8 +415,8 @@ int main() {
 
 	time_t start = time(0);
 	
-	for (int i = 0; i < 100; i++) {
-		double dist = pow(i, 0.4) * 300;
+	for (int i = 0; i < 200; i++) {
+		double dist = pow(i, 0.4) * 220;
 		double scale = dist / 100.0;
 		int x = (WIDTH/2) + (int) (dist * sin(i * (M_PI / scale)));
 		int y = (HEIGHT/2) + (int) (dist * cos(i * (M_PI / scale)));
@@ -437,7 +437,7 @@ int main() {
 		putColorInTree(root, &colors[i]);
 	}
 	
-	for(int i = 100; i < TODO; i++) {
+	for(int i = 200; i < TODO; i++) {
 		setPixel(open, &colors[i], root, &pseudoRandom);
 
 		if (i % 200000 == 0) {
